@@ -1,0 +1,178 @@
+# LockpickLog walkthrough - every command below runs the real CLI
+# against a throwaway store at .demo-store/data.json
+
+## help first
+
+$ python3 lockpicklog.py --version
+LockpickLog 1.0.0
+
+$ python3 lockpicklog.py --help
+usage: lockpicklog [-h] [--version] [--no-color] <command> ...
+
+LockpickLog - log your locks, their pin stacks and your pick attempts.
+
+positional arguments:
+  <command>
+    locks     log locks (model and picking method)
+    pins      log a lock's pin tumbler sequence
+    practice  time attempts and report your success rate
+
+options:
+  -h, --help  show this help message and exit
+  --version   show program's version number and exit
+  --no-color  disable ANSI colour (the NO_COLOR environment variable is also
+              honoured)
+
+examples:
+  lockpicklog locks add --model "Master 140" --method rake --note "practice padlock"
+  lockpicklog locks list
+  lockpicklog locks show 1
+  lockpicklog pins add 1 --position 1 --height 3 --note "low cut"
+  lockpicklog pins show 1
+  lockpicklog practice start 1
+  lockpicklog practice stop --success
+  lockpicklog practice stats --lock 1
+
+store:
+  lockpicklog keeps one JSON log. Default $HOME/.lockpicklog/data.json, overridden
+  with the LOCKPICKLOG_DATA environment variable.
+
+output:
+  records go to stdout (one per line, safe to redirect), errors to stderr.
+  Colour is only used on a terminal and is disabled by --no-color or NO_COLOR.
+
+exit codes:
+  0 success   2 bad input (nothing stored)   1 storage problem (nothing changed)
+
+## 1. a fresh log invites its first lock
+
+$ python3 lockpicklog.py locks list
+no locks logged yet - add one with: lockpicklog locks add --model <text> --method <text>
+
+$ python3 lockpicklog.py locks add --model 'Master 140' --method rake --note 'cheap practice padlock'
+added lock 1 - Master 140 (rake)
+
+$ python3 lockpicklog.py locks add --model 'ABUS 55/40' --method spp --note 'worn pins, needs light tension'
+added lock 2 - ABUS 55/40 (spp)
+
+$ python3 lockpicklog.py locks list
+  ID  MODEL       METHOD  NOTE                              PINS
+  ──  ──────────  ──────  ──────────────────────────────  ──────
+   2  ABUS 55/40  spp     worn pins, needs light tension  0 pins
+   1  Master 140  rake    cheap practice padlock          0 pins
+
+$ python3 lockpicklog.py locks show 1
+lock 1
+────────
+  model     Master 140
+  method    rake
+  note      cheap practice padlock
+  pins      0 logged
+  sessions  0 recorded
+  created   2026-10-13T22:34:01+00:00 (just now)
+
+## 2. pin tumbler sequence notes
+
+$ python3 lockpicklog.py pins add 1 --position 1 --height 3 --note 'low cut'
+added pin at position 1 with height 3 for lock 1 (pin id 1)
+
+$ python3 lockpicklog.py pins add 1 --position 2 --height 5
+added pin at position 2 with height 5 for lock 1 (pin id 2)
+
+$ python3 lockpicklog.py pins add 1 --position 3 --height 4 --note spool
+added pin at position 3 with height 4 for lock 1 (pin id 3)
+
+$ python3 lockpicklog.py pins add 1 --position 2 --height 7
+updated position 2 for lock 1 - height is now 7 (no duplicate created)
+
+$ python3 lockpicklog.py pins show 1
+lock 1 - Master 140 - pin stack
+───────────────────────────────
+  POS  HEIGHT  NOTE
+  ───  ──────  ───────
+    1       3  low cut
+    2       7
+    3       4  spool
+  total  3 pins on the 0-9 height scale
+
+## 3. bad input is refused and stores nothing
+
+$ python3 lockpicklog.py pins add 1 --position 1 --height 12
+error: argument --height: height must be between 0 and 9 (got '12'); usage: lockpicklog pins add <lock_id> --position <1..n> --height <0-9> [--note <text>]
+(exit 2 - nothing was stored)
+
+$ python3 lockpicklog.py pins add 1 --position abc --height 3
+error: argument --position: position must be a whole number (got 'abc'); usage: lockpicklog pins add <lock_id> --position <1..n> --height <0-9> [--note <text>]
+(exit 2 - nothing was stored)
+
+$ python3 lockpicklog.py pins add 9999 --position 1 --height 3
+error: no lock with id 9999 exists (lockpicklog locks list shows the ids you have); usage: lockpicklog pins add <lock_id> --position <1..n> --height <0-9> [--note <text>]
+(exit 2 - nothing was stored)
+
+$ python3 lockpicklog.py locks add --model  --method rake
+error: --model is required and must not be blank; usage: lockpicklog locks add --model <text> --method <text> [--note <text>]
+(exit 2 - nothing was stored)
+
+$ python3 lockpicklog.py pins show 1
+lock 1 - Master 140 - pin stack
+───────────────────────────────
+  POS  HEIGHT  NOTE
+  ───  ──────  ───────
+    1       3  low cut
+    2       7
+    3       4  spool
+  total  3 pins on the 0-9 height scale
+
+## 4. timed attempts
+
+$ python3 lockpicklog.py practice start 1
+timer running for lock 1 - Master 140 - session 1 started 2026-10-13T22:34:04+00:00 (stop it with: lockpicklog practice stop --success|--failure)
+
+$ python3 lockpicklog.py practice stop --success
+session 1 complete: opened in 2s for lock 1 - Master 140
+
+$ python3 lockpicklog.py practice start 2
+timer running for lock 2 - ABUS 55/40 - session 2 started 2026-10-13T22:34:06+00:00 (stop it with: lockpicklog practice stop --success|--failure)
+
+$ python3 lockpicklog.py practice stop --failure
+session 2 complete: not opened in 2s for lock 2 - ABUS 55/40
+
+$ python3 lockpicklog.py practice stop --success
+error: no timer is running - start one with: lockpicklog practice start [<lock_id>]; usage: lockpicklog practice stop --success|--failure
+(exit 2 - nothing was stored)
+
+$ python3 lockpicklog.py practice stats
+practice stats
+──────────────
+  sessions       2
+  opened         1
+  success rate   50% (1 of 2)
+  avg open time  2s
+
+$ python3 lockpicklog.py practice stats --lock 1
+practice stats - lock 1 - Master 140
+────────────────────────────────────
+  sessions       1
+  opened         1
+  success rate   100% (1 of 1)
+  avg open time  2s
+
+## 5. the log on disk (schema_version + entity lists, written atomically)
+$ head -8 .demo-store/data.json
+{
+  "schema_version": 1,
+  "locks": [
+    {
+      "id": 1,
+      "model": "Master 140",
+      "method": "rake",
+      "note": "cheap practice padlock",
+
+## 6. a corrupted log fails loudly and is left untouched
+$ printf 'not json' > .demo-store/data.json
+
+$ python3 lockpicklog.py locks list
+error: store .demo-store/data.json is not valid JSON (line 1, column 1); fix or remove the file
+(exit 1 - nothing was stored)
+
+# Walkthrough complete. Your own log at $HOME/.lockpicklog/data.json was never touched.
