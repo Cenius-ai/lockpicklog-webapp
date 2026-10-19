@@ -82,7 +82,7 @@ See [`INSTALL.md`](INSTALL.md) for full setup and usage instructions.
 
 ## Architecture
 
-`install.sh` provisions dependencies and seeds demo data so the app starts with something real to explore. The Full-stack app codebase (30 files) is self-contained — no external services needed to evaluate it. Top-level layout: `demo/`, `tests/`. Step-by-step setup guide: [`INSTALL.md`](INSTALL.md).
+`install.sh` provisions dependencies and seeds demo data so the app starts with something real to explore. The Full-stack app codebase (20 files) is self-contained — no external services needed to evaluate it. Top-level layout: `demo/`, `tests/`. Step-by-step setup guide: [`INSTALL.md`](INSTALL.md).
 
 ## FAQ
 
